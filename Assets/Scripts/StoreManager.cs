@@ -144,44 +144,46 @@ public class StoreManager : MonoBehaviour, IStoreListener
 
     private bool ValidateReceipt(Product product)
     {
-        bool validReceipt = true;
+        bool validRecipt = true;
 
 #if UNITY_IOS || UNITY_ANDROID || UNITY_STANDALONE_OSX
-        var validator = new CrossPlatformValidator(AppleTangle.Data(), null, Application.identifier);
+        var validator = new CrossPlatformValidator(GooglePlayTangle.Data(), AppleTangle.Data(), Application.identifier);
 
         try
         {
             var result = validator.Validate(product.receipt);
-            foreach (IPurchaseReceipt productReceipt in result)
+            foreach(IPurchaseReceipt productReceipt in result)
             {
                 Debug.LogFormat("{0}, {1}, {2}", productReceipt.productID, productReceipt.purchaseDate, productReceipt.transactionID);
 
-                AppleInAppPurchaseReceipt aReceipt = productReceipt as AppleInAppPurchaseReceipt;
-                if(aReceipt != null)
+                AppleInAppPurchaseReceipt appleReceipt = productReceipt as AppleInAppPurchaseReceipt;
+                if(appleReceipt != null)
                 {
-                    Debug.LogFormat("{0}, {1}", aReceipt.originalTransactionIdentifier, aReceipt.subscriptionExpirationDate);
+                    Debug.LogFormat("{0}", appleReceipt.originalTransactionIdentifier);
                 }
 
-                GooglePlayReceipt gReceipt = productReceipt as GooglePlayReceipt;
-                if(gReceipt != null)
+                GooglePlayReceipt googleReceipt = productReceipt as GooglePlayReceipt;
+                if(googleReceipt != null)
                 {
-                    Debug.LogFormat("{0}, {1}, {2}", gReceipt.transactionID, gReceipt.purchaseState, gReceipt.purchaseToken);
+                    Debug.LogFormat("{0}", googleReceipt.transactionID);
                 }
             }
         }
-        catch(MissingStoreSecretException)
+        catch (MissingStoreSecretException e)
         {
-            Debug.Log("You haven't supplied a secret key for this platform...");
-            validReceipt = false;
-        }
-        catch (IAPSecurityException)
+            Debug.Log("You haven't supplied a secret key...");
+            Debug.LogException(e);
+            validRecipt = false;
+        } 
+        catch (IAPSecurityException e)
         {
-            Debug.Log("Invalide receipt...");
-            validReceipt = false;
+            Debug.LogFormat("Invalid receipt {0}", product.receipt);
+            Debug.LogException(e);
+            validRecipt = false;
         }
 #endif
 
-        return validReceipt;
+        return validRecipt;
     }
     #endregion
 
@@ -231,8 +233,8 @@ public class StoreManager : MonoBehaviour, IStoreListener
         if (payout != null)
             Debug.Log("Payout for this item detected...");
 
-        //bool validReceipt = ValidateReceipt(args.purchasedProduct);
-
+        bool validReceipt = ValidateReceipt(args.purchasedProduct);
+            
         switch(productID)
         {
             case productIDConsumable_MediumPotion:
